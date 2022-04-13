@@ -16,6 +16,7 @@ class MainFragment : Fragment() {
 
     companion object {
         fun newInstance() = MainFragment()
+        private val transformListToButtonState = TransformListToButtonState()
     }
 
     private lateinit var viewModel: MainViewModel
@@ -40,12 +41,14 @@ class MainFragment : Fragment() {
             layoutManager = LinearLayoutManager(context)
             adapter = listAdapter
         }
+        updateFragmentOnListChange()
+    }
+
+    private fun updateFragmentOnListChange() {
         viewModel.elementLiveData.observe(viewLifecycleOwner) {
             listAdapter.update(it)
-        }
-        parent.findViewById<Button>(R.id.btn_select_deselect).also { button ->
-            viewModel.selectAllButtonState.observe(viewLifecycleOwner) { state ->
-                when (state) {
+            parent.findViewById<Button>(R.id.btn_select_deselect).also { button ->
+                when (transformListToButtonState.listToSelectAllButtonState(it)) {
                     SelectAllButtonState.SelectAll -> {
                         button.text = "SelectAll all"
                         button.setOnClickListener {
@@ -60,11 +63,9 @@ class MainFragment : Fragment() {
                     }
                 }
             }
-        }
 
-        parent.findViewById<Button>(R.id.btn_select_geo).also { button ->
-            viewModel.selectAllGeoButtonState.observe(viewLifecycleOwner) { state ->
-                when (state) {
+            parent.findViewById<Button>(R.id.btn_select_geo).also { button ->
+                when (transformListToButtonState.listToSelectAllGeoButtonState(it)) {
                     SelectAllGeoButtonState.Inactive -> {
                         button.isEnabled = false
                     }
@@ -76,22 +77,25 @@ class MainFragment : Fragment() {
                     }
                 }
             }
-        }
 
-        parent.findViewById<Button>(R.id.btn_send).also { button ->
-            viewModel.selectedItems.observe(viewLifecycleOwner) { list ->
-                if (list.isEmpty()) {
+            parent.findViewById<Button>(R.id.btn_send).also { button ->
+                val selectedList = it.filter { it.isChecked }
+                if (selectedList.isEmpty()) {
                     button.isEnabled = false
                 } else {
                     button.isEnabled = true
                     button.setOnClickListener {
-                        Toast.makeText(context, "${list.size} element send", Toast.LENGTH_SHORT)
+                        Toast.makeText(
+                            context,
+                            "${selectedList.size} element send",
+                            Toast.LENGTH_SHORT
+                        )
                             .show()
                     }
                 }
             }
-        }
 
+        }
     }
 
 }

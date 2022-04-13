@@ -52,6 +52,7 @@ class MainAdapter(
 
             override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
                 return list[oldItemPosition].text == newList[newItemPosition].text &&
+                    list[oldItemPosition].containsGeoData == newList[newItemPosition].containsGeoData &&
                     list[oldItemPosition].isChecked == newList[newItemPosition].isChecked
             }
         })
