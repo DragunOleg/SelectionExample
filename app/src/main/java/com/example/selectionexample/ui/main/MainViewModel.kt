@@ -18,7 +18,7 @@ class MainViewModel : ViewModel() {
     init {
         for (i in 0..15) {
             this.viewModelScope.launch {
-                delay(500 * i.toLong())
+                delay(100 * i.toLong())
                 _elementLiveData.imutPlus(
                     ElementModel(
                         text = "element $i",

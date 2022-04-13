@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="SelectableItemTheme">
+        <item name="colorControlHighlight">@color/teal_200</item>
+    </style>
+    <style name="SelectableItemBackground">
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:theme">@style/SelectableItemTheme</item>
+        <item name="android:foreground">?attr/selectableItemBackground</item>
+    </style>
+</resources>

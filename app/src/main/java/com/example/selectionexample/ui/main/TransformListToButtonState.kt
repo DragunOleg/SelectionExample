@@ -9,6 +9,8 @@ class TransformListToButtonState() {
 
 
     fun listToSelectAllGeoButtonState(list: List<ElementModel>): SelectAllGeoButtonState =
-        if (list.firstOrNull { it.containsGeoData && !it.isChecked } != null) SelectAllGeoButtonState.Available
+        if (list.firstOrNull { it.containsGeoData && !it.isChecked } != null ||
+            list.firstOrNull { !it.containsGeoData && it.isChecked } != null)
+            SelectAllGeoButtonState.Available
         else SelectAllGeoButtonState.Inactive
 }

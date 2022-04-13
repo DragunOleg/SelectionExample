@@ -70,8 +70,13 @@ class MainAdapter(
             if (element.containsGeoData) {
                 textView.text = element.text + "GEO"
             } else textView.text = element.text
+            if (cb.isChecked != element.isChecked) {
+                //this will make visible animation for cb
+                val successfull = cb.post { cb.isChecked = element.isChecked }
+                //if something is wrong with runnable, still be sure model and elements are similar
+                if (!successfull) cb.isChecked = element.isChecked
 
-            cb.isChecked = element.isChecked
+            }
             view.setOnClickListener {
                 cb.performClick()
             }
