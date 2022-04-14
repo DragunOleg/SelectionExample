@@ -87,7 +87,7 @@ class MainAdapter(
                 textView.text = element.text + "GEO"
             } else textView.text = element.text
             view.setOnClickListener {
-                cb.performClick()
+                selectionTracker.select(element.text)
             }
             cb.setOnClickListener {
                 selectionTracker.select(element.text)

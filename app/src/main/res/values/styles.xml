@@ -6,7 +6,6 @@
     <style name="SelectableItemBackground">
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
-        <item name="android:longClickable">true</item>
         <item name="android:theme">@style/SelectableItemTheme</item>
         <item name="android:foreground">?attr/selectableItemBackground</item>
     </style>

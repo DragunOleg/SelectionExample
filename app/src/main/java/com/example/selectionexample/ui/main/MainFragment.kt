@@ -73,15 +73,8 @@ class MainFragment : Fragment() {
         ).build()
 
         tracker.addObserver(object : SelectionTracker.SelectionObserver<String>() {
-            private var hasSelection = false
-
             override fun onSelectionChanged() {
                 super.onSelectionChanged()
-                if (hasSelection != tracker.hasSelection()) {
-                    hasSelection = tracker.hasSelection()
-                    Log.d("dragu", "onSelectionChanged to $hasSelection")
-                    listAdapter.notifyItemRangeChanged(0, listAdapter.itemCount)
-                }
                 parent.findViewById<Button>(R.id.btn_select_deselect).also { button ->
                     if (listAdapter.list.size == tracker.selection.size()) {
                         button.text = "Deselect all"
@@ -98,8 +91,7 @@ class MainFragment : Fragment() {
                     button.isEnabled = selection!=recyclerSet
                 }
 
-                parent.findViewById<Button>(R.id.btn_send).isEnabled = hasSelection
-
+                parent.findViewById<Button>(R.id.btn_send).isEnabled = selection.isNotEmpty()
 
 
             }
@@ -114,11 +106,12 @@ class MainFragment : Fragment() {
     private fun setupButtons() {
         parent.findViewById<Button>(R.id.btn_send).also { button ->
             val selectedList = tracker.selection
-            selectedList.forEach {
-                Log.d("dragu", "item selected: $it")
-            }
+                button.isEnabled = !selectedList.isEmpty
 
             button.setOnClickListener {
+                selectedList.forEach {
+                    Log.d("dragu", "item selected: $it")
+                }
                 Toast.makeText(
                     context,
                     "${selectedList.size()} element send",
@@ -135,19 +128,16 @@ class MainFragment : Fragment() {
                     itemKeys,
                     tracker.selection.size() ?: 0 != itemKeys.size
                 )
-                listAdapter.notifyItemRangeChanged(0, listAdapter.itemCount)
             }
         }
 
         parent.findViewById<Button>(R.id.btn_select_geo).setOnClickListener {
-            val newSelectedList =mutableListOf<String>()
-            listAdapter.list.forEach { element ->
-                if (element.containsGeoData) {
-                    newSelectedList.add(element.text)
-                }
-            }
             tracker.clearSelection()
-            tracker.setItemsSelected(newSelectedList, true)
+            tracker.setItemsSelected(
+                listAdapter.list
+                .filter { it.containsGeoData }
+                    .map { it.text }
+                , true)
         }
     }
 }
