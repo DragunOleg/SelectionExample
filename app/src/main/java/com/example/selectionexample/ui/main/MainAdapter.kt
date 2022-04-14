@@ -5,15 +5,19 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.TextView
+import androidx.recyclerview.selection.ItemDetailsLookup.ItemDetails
+import androidx.recyclerview.selection.SelectionTracker
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.example.selectionexample.ElementModel
 import com.example.selectionexample.R
+import com.example.selectionexample.ui.selection.IMainItemViewHolder
 
 class MainAdapter(
-    private val list: MutableList<ElementModel> = mutableListOf(),
-    private val onItemInteraction: (adapterPosition: Int) -> Unit
+    val list: MutableList<ElementModel> = mutableListOf()
 ) : RecyclerView.Adapter<MainAdapter.ViewHolder>() {
+
+    private var selectionTracker: SelectionTracker<String>? = null
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -23,7 +27,7 @@ class MainAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(list[position], position, onItemInteraction)
+        holder.bind(list[position], selectionTracker)
     }
 
     override fun getItemCount(): Int = list.size
@@ -31,6 +35,7 @@ class MainAdapter(
     fun update(newList: List<ElementModel>) {
         val diff = calculateDiff(newList)
         list.clear()
+        selectionTracker?.clearSelection()
         list.addAll(newList)
         diff.dispatchUpdatesTo(this)
     }
@@ -52,37 +57,52 @@ class MainAdapter(
 
             override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
                 return list[oldItemPosition].text == newList[newItemPosition].text &&
-                    list[oldItemPosition].containsGeoData == newList[newItemPosition].containsGeoData &&
-                    list[oldItemPosition].isChecked == newList[newItemPosition].isChecked
+                    list[oldItemPosition].containsGeoData == newList[newItemPosition].containsGeoData
             }
         })
 
+    fun setTracker(tracker: SelectionTracker<String>) {
+        selectionTracker = tracker
+    }
+
     class ViewHolder(
         private val view: View,
-    ) : RecyclerView.ViewHolder(view) {
+    ) : RecyclerView.ViewHolder(view), IMainItemViewHolder {
         private val textView: TextView = view.findViewById(R.id.tv_text)
         private val cb: CheckBox = view.findViewById(R.id.cb_selection)
 
         fun bind(
             element: ElementModel,
-            adapterPosition: Int,
-            onItemInteraction: (adapterPosition: Int) -> Unit) {
+            selectionTracker: SelectionTracker<String>?
+        ) {
+            val isSelected = selectionTracker?.isSelected(element.text) ?: false
+            cb.isChecked = isSelected
             if (element.containsGeoData) {
                 textView.text = element.text + "GEO"
             } else textView.text = element.text
-            if (cb.isChecked != element.isChecked) {
-                //this will make visible animation for cb
-                val successfull = cb.post { cb.isChecked = element.isChecked }
-                //if something is wrong with runnable, still be sure model and elements are similar
-                if (!successfull) cb.isChecked = element.isChecked
-
-            }
             view.setOnClickListener {
                 cb.performClick()
             }
             cb.setOnClickListener {
-                onItemInteraction(adapterPosition)
+                selectionTracker?.select(element.text)
             }
         }
+
+        override fun getItemDetails(): ItemDetails<String> {
+
+            return object: ItemDetails<String>() {
+                override fun getPosition(): Int {
+                    return adapterPosition
+                }
+
+                override fun getSelectionKey(): String {
+                    return textView.text.toString().removeSuffix("GEO")
+                }
+            }
+
+
+        }
+
+
     }
 }

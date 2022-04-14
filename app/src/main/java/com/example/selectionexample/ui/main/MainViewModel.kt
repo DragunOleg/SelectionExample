@@ -1,6 +1,5 @@
 package com.example.selectionexample.ui.main
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -16,9 +15,9 @@ class MainViewModel : ViewModel() {
     val elementLiveData: LiveData<List<ElementModel>> = _elementLiveData
 
     init {
-        for (i in 0..15) {
+        for (i in 0..4) {
             this.viewModelScope.launch {
-                delay(100 * i.toLong())
+                delay(500 * i.toLong())
                 _elementLiveData.imutPlus(
                     ElementModel(
                         text = "element $i",
@@ -28,29 +27,6 @@ class MainViewModel : ViewModel() {
             }
         }
     }
-
-    fun changeListSelection(selectAll: Boolean) {
-        val newList = _elementLiveData.value?.map {
-            it.copy(isChecked = selectAll)
-        } ?: mutableListOf()
-        _elementLiveData.postValue(newList)
-    }
-
-    fun selectGeo() {
-        val newList = _elementLiveData.value?.map {
-            it.copy(isChecked = it.containsGeoData)
-        } ?: mutableListOf()
-        _elementLiveData.postValue(newList)
-    }
-
-    fun onItemClicked(position: Int) {
-        _elementLiveData.value?.let { list ->
-            list[position].isChecked = !list[position].isChecked
-            _elementLiveData.postValue(list)
-        }
-        Log.d("dragu", "viewModel onItemClicked position = $position")
-    }
-
 }
 
 /**
