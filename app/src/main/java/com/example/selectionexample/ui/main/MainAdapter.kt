@@ -17,17 +17,17 @@ class MainAdapter(
     val list: MutableList<ElementModel> = mutableListOf()
 ) : RecyclerView.Adapter<MainAdapter.ViewHolder>() {
 
-    private var selectionTracker: SelectionTracker<String>? = null
+    lateinit var selectionTracker: SelectionTracker<String>
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.main_fragment_recycler_element, parent, false)
-        return ViewHolder(view)
+        return ViewHolder(view, selectionTracker)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(list[position], selectionTracker)
+        holder.bind(list[position])
     }
 
     override fun getItemCount(): Int = list.size
@@ -35,7 +35,6 @@ class MainAdapter(
     fun update(newList: List<ElementModel>) {
         val diff = calculateDiff(newList)
         list.clear()
-        selectionTracker?.clearSelection()
         list.addAll(newList)
         diff.dispatchUpdatesTo(this)
     }
@@ -67,16 +66,23 @@ class MainAdapter(
 
     class ViewHolder(
         private val view: View,
+        private val selectionTracker: SelectionTracker<String>
     ) : RecyclerView.ViewHolder(view), IMainItemViewHolder {
         private val textView: TextView = view.findViewById(R.id.tv_text)
         private val cb: CheckBox = view.findViewById(R.id.cb_selection)
 
         fun bind(
-            element: ElementModel,
-            selectionTracker: SelectionTracker<String>?
+            element: ElementModel
         ) {
-            val isSelected = selectionTracker?.isSelected(element.text) ?: false
-            cb.isChecked = isSelected
+            val isSelected = selectionTracker.isSelected(element.text)
+            if (cb.isChecked != isSelected) {
+                //this will make visible animation for cb
+                val successfull = cb.post { cb.isChecked = isSelected }
+                //if something is wrong with runnable, still be sure model and elements are similar
+                if (!successfull) cb.isChecked = isSelected
+            }
+
+
             if (element.containsGeoData) {
                 textView.text = element.text + "GEO"
             } else textView.text = element.text
@@ -84,7 +90,7 @@ class MainAdapter(
                 cb.performClick()
             }
             cb.setOnClickListener {
-                selectionTracker?.select(element.text)
+                selectionTracker.select(element.text)
             }
         }
 

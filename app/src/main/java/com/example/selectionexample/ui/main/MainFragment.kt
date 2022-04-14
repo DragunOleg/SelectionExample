@@ -27,7 +27,7 @@ class MainFragment : Fragment() {
     private lateinit var viewModel: MainViewModel
     private lateinit var listAdapter: MainAdapter
     private lateinit var recyclerView: RecyclerView
-    private var tracker: SelectionTracker<String>? = null
+    private lateinit var tracker: SelectionTracker<String>
 
     private lateinit var parent: View
 
@@ -49,7 +49,7 @@ class MainFragment : Fragment() {
         }
 
         initSelectionTracker(savedInstanceState)
-        tracker?.let { listAdapter.setTracker(it) }
+        listAdapter.setTracker(tracker)
         viewModel.elementLiveData.observe(viewLifecycleOwner) {
             listAdapter.update(it)
         }
@@ -59,7 +59,7 @@ class MainFragment : Fragment() {
 
     override fun onSaveInstanceState(savedInstanceState: Bundle) {
         super.onSaveInstanceState(savedInstanceState)
-        tracker?.onSaveInstanceState(savedInstanceState)
+        tracker.onSaveInstanceState(savedInstanceState)
     }
 
     private fun initSelectionTracker(savedInstanceState: Bundle?) {
@@ -70,47 +70,27 @@ class MainFragment : Fragment() {
             MainItemKeyProvider(listAdapter),
             MainItemDetailsLookup(recyclerView),
             StorageStrategy.createStringStorage()
-        ).withSelectionPredicate(
-            object : SelectionPredicate<String>() {
-                override fun canSetStateForKey(key: String, nextState: Boolean): Boolean {
-                    listAdapter.list.forEach {
-                        if (key == it.text) return true
-                    }
-                    return false
-                }
-
-                override fun canSetStateAtPosition(position: Int, nextState: Boolean): Boolean {
-                    return true
-                }
-
-                override fun canSelectMultiple(): Boolean {
-                    return true
-                }
-            }
         ).build()
 
-        if (savedInstanceState != null) {
-            tracker!!.onRestoreInstanceState(savedInstanceState)
-        }
-
-        tracker!!.addObserver(object : SelectionTracker.SelectionObserver<String>() {
+        tracker.addObserver(object : SelectionTracker.SelectionObserver<String>() {
             private var hasSelection = false
+
             override fun onSelectionChanged() {
                 super.onSelectionChanged()
-                if (hasSelection != tracker!!.hasSelection()) {
-                    hasSelection = tracker!!.hasSelection()
+                if (hasSelection != tracker.hasSelection()) {
+                    hasSelection = tracker.hasSelection()
                     Log.d("dragu", "onSelectionChanged to $hasSelection")
-                    recyclerView.post { listAdapter.notifyDataSetChanged() }
+                    listAdapter.notifyItemRangeChanged(0, listAdapter.itemCount)
                 }
                 parent.findViewById<Button>(R.id.btn_select_deselect).also { button ->
-                    if (listAdapter.list.size == tracker!!.selection.size()) {
+                    if (listAdapter.list.size == tracker.selection.size()) {
                         button.text = "Deselect all"
                     } else {
                         button.text = "Select all"
                     }
                 }
 
-                val selection = tracker!!.selection.toSet()
+                val selection = tracker.selection.toSet()
                 val recyclerSet = listAdapter.list.filter { it.containsGeoData }.map {
                     it.text
                 }.toSet()
@@ -125,19 +105,23 @@ class MainFragment : Fragment() {
             }
         })
 
+        if (savedInstanceState != null) {
+            tracker.onRestoreInstanceState(savedInstanceState)
+        }
+
     }
 
     private fun setupButtons() {
         parent.findViewById<Button>(R.id.btn_send).also { button ->
-            val selectedList = tracker?.selection
-            selectedList?.forEach {
+            val selectedList = tracker.selection
+            selectedList.forEach {
                 Log.d("dragu", "item selected: $it")
             }
 
             button.setOnClickListener {
                 Toast.makeText(
                     context,
-                    "${selectedList?.size()} element send",
+                    "${selectedList.size()} element send",
                     Toast.LENGTH_SHORT
                 )
                     .show()
@@ -147,11 +131,11 @@ class MainFragment : Fragment() {
         parent.findViewById<Button>(R.id.btn_select_deselect).also { button ->
             button.setOnClickListener {
                 val itemKeys: List<String> = listAdapter.list.map { it.text }
-                tracker?.setItemsSelected(
+                tracker.setItemsSelected(
                     itemKeys,
-                    tracker?.selection?.size() ?: 0 != itemKeys.size
+                    tracker.selection.size() ?: 0 != itemKeys.size
                 )
-                listAdapter.notifyDataSetChanged()
+                listAdapter.notifyItemRangeChanged(0, listAdapter.itemCount)
             }
         }
 
@@ -162,8 +146,8 @@ class MainFragment : Fragment() {
                     newSelectedList.add(element.text)
                 }
             }
-            tracker?.clearSelection()
-            tracker?.setItemsSelected(newSelectedList, true)
+            tracker.clearSelection()
+            tracker.setItemsSelected(newSelectedList, true)
         }
     }
 }

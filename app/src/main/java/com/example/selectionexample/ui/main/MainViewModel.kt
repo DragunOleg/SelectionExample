@@ -15,7 +15,7 @@ class MainViewModel : ViewModel() {
     val elementLiveData: LiveData<List<ElementModel>> = _elementLiveData
 
     init {
-        for (i in 0..4) {
+        for (i in 0..5) {
             this.viewModelScope.launch {
                 delay(500 * i.toLong())
                 _elementLiveData.imutPlus(
