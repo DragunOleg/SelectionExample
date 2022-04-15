@@ -19,6 +19,9 @@ class MainAdapter(
 
     lateinit var selectionTracker: SelectionTracker<String>
 
+    fun setTracker(tracker: SelectionTracker<String>) {
+        selectionTracker = tracker
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -60,10 +63,6 @@ class MainAdapter(
             }
         })
 
-    fun setTracker(tracker: SelectionTracker<String>) {
-        selectionTracker = tracker
-    }
-
     class ViewHolder(
         private val view: View,
         private val selectionTracker: SelectionTracker<String>
@@ -78,7 +77,7 @@ class MainAdapter(
             if (cb.isChecked != isSelected) {
                 //this will make visible animation for cb
                 val successfull = cb.post { cb.isChecked = isSelected }
-                //if something is wrong with runnable, still be sure model and elements are similar
+                //if something is wrong with runnable, still make sure model and element are similar
                 if (!successfull) cb.isChecked = isSelected
             }
 

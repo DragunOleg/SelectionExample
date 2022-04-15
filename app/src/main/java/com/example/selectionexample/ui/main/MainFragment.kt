@@ -24,12 +24,11 @@ class MainFragment : Fragment() {
         fun newInstance() = MainFragment()
     }
 
+    private lateinit var parent: View
     private lateinit var viewModel: MainViewModel
     private lateinit var listAdapter: MainAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var tracker: SelectionTracker<String>
-
-    private lateinit var parent: View
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -72,6 +71,15 @@ class MainFragment : Fragment() {
             StorageStrategy.createStringStorage()
         ).build()
 
+        /**
+        This observer is extra one, on top of base tracker oberver.
+        Base tracker observer is calling onBindViewHolder for
+        a) single item selection (selectionTracker.select(elementKey)) on clickListener
+        b) multiple selection through "tracker.setItemsSelected" for each item selection state change
+
+        So DO NOT put any adapter.notifyDataSetChange in this extra observer.
+        Do selection state change displaying ONLY in onBind method
+         */
         tracker.addObserver(object : SelectionTracker.SelectionObserver<String>() {
             override fun onSelectionChanged() {
                 super.onSelectionChanged()
@@ -83,30 +91,25 @@ class MainFragment : Fragment() {
                     }
                 }
 
-                val selection = tracker.selection.toSet()
-                val recyclerSet = listAdapter.list.filter { it.containsGeoData }.map {
+                val selectionSet = tracker.selection.toSet()
+                val recyclerGeoSet = listAdapter.list.filter { it.containsGeoData }.map {
                     it.text
                 }.toSet()
                 parent.findViewById<Button>(R.id.btn_select_geo).also { button ->
-                    button.isEnabled = selection!=recyclerSet
+                    button.isEnabled = selectionSet != recyclerGeoSet
                 }
-
-                parent.findViewById<Button>(R.id.btn_send).isEnabled = selection.isNotEmpty()
-
-
+                parent.findViewById<Button>(R.id.btn_send).isEnabled = selectionSet.isNotEmpty()
             }
         })
-
         if (savedInstanceState != null) {
             tracker.onRestoreInstanceState(savedInstanceState)
         }
-
     }
 
     private fun setupButtons() {
         parent.findViewById<Button>(R.id.btn_send).also { button ->
             val selectedList = tracker.selection
-                button.isEnabled = !selectedList.isEmpty
+            button.isEnabled = !selectedList.isEmpty
 
             button.setOnClickListener {
                 selectedList.forEach {
@@ -114,10 +117,9 @@ class MainFragment : Fragment() {
                 }
                 Toast.makeText(
                     context,
-                    "${selectedList.size()} element send",
+                    "${selectedList.size()} elements send",
                     Toast.LENGTH_SHORT
-                )
-                    .show()
+                ).show()
             }
         }
 
@@ -135,9 +137,10 @@ class MainFragment : Fragment() {
             tracker.clearSelection()
             tracker.setItemsSelected(
                 listAdapter.list
-                .filter { it.containsGeoData }
-                    .map { it.text }
-                , true)
+                    .filter { it.containsGeoData }
+                    .map { it.text },
+                true
+            )
         }
     }
 }
