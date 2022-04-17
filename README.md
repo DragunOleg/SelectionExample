@@ -1,7 +1,7 @@
-# SelectionExample
-![selectionExampleVid](https://user-images.githubusercontent.com/8080919/163710871-49197474-8f6c-4a3e-abac-719d5e9f82c3.gif) 
 ## WHAT
 This is simple example of how to use recycler-selection library for very simple case of just selecting list of items in recycler. Select/deselect all. And select with some custom filter.
+
+![selectionExampleVid](https://user-images.githubusercontent.com/8080919/163710871-49197474-8f6c-4a3e-abac-719d5e9f82c3.gif) 
 
 ## WHY
 All the tutorials are looked complicated and using approach for hard case with action mode, what is unnessessary for humble homie like me (and probably you).
