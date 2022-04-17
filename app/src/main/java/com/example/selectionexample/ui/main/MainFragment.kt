@@ -10,135 +10,121 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.selection.SelectionTracker
-import androidx.recyclerview.selection.SelectionTracker.SelectionPredicate
 import androidx.recyclerview.selection.StorageStrategy
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.selectionexample.R
 import com.example.selectionexample.ui.selection.MainItemDetailsLookup
 import com.example.selectionexample.ui.selection.MainItemKeyProvider
+import com.example.selectionexample.ui.selection.MainTrackerObserver
 
 class MainFragment : Fragment() {
 
     companion object {
+        private val TAG = MainFragment::class.java.simpleName
         fun newInstance() = MainFragment()
     }
 
-    private lateinit var parent: View
     private lateinit var viewModel: MainViewModel
-    private lateinit var listAdapter: MainAdapter
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var tracker: SelectionTracker<String>
+    private var listAdapter: MainAdapter? = null
+    private var recyclerView: RecyclerView? = null
+    private var btnSelectDeselect: Button? = null
+    private var btnSelectGeo: Button? = null
+    private var btnSend: Button? = null
+    private var tracker: SelectionTracker<String>? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        parent = inflater.inflate(R.layout.main_fragment, container, false)
-        return parent
+        return inflater.inflate(R.layout.main_fragment, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
-        listAdapter = MainAdapter()
-        recyclerView = parent.findViewById<RecyclerView?>(R.id.list).apply {
+        listAdapter = MainAdapter(
+            isItemSelected = { tracker?.isSelected(it) ?: false },
+            selectItem = { tracker?.select(it) }
+        )
+        recyclerView = view.findViewById<RecyclerView>(R.id.list).apply {
             layoutManager = LinearLayoutManager(context)
             adapter = listAdapter
         }
+        btnSelectDeselect = view.findViewById(R.id.btn_select_deselect)
+        btnSelectGeo = view.findViewById(R.id.btn_select_geo)
+        btnSend = view.findViewById(R.id.btn_send)
 
         initSelectionTracker(savedInstanceState)
-        listAdapter.setTracker(tracker)
         viewModel.elementLiveData.observe(viewLifecycleOwner) {
-            listAdapter.update(it)
+            listAdapter?.update(it)
+            refreshNonRecyclerItems()
         }
-
-        setupButtons()
+        setupClickListeners()
     }
 
     override fun onSaveInstanceState(savedInstanceState: Bundle) {
         super.onSaveInstanceState(savedInstanceState)
-        tracker.onSaveInstanceState(savedInstanceState)
+        tracker?.onSaveInstanceState(savedInstanceState)
     }
 
     private fun initSelectionTracker(savedInstanceState: Bundle?) {
-
-        tracker = SelectionTracker.Builder(
-            "MainSelection",
-            recyclerView,
-            MainItemKeyProvider(listAdapter),
-            MainItemDetailsLookup(recyclerView),
-            StorageStrategy.createStringStorage()
-        ).build()
-
+        recyclerView?.let { rv ->
+            listAdapter?.let { adapter ->
+                tracker = SelectionTracker.Builder(
+                    TAG,
+                    rv,
+                    MainItemKeyProvider(adapter),
+                    MainItemDetailsLookup(rv),
+                    StorageStrategy.createStringStorage()
+                ).build()
+            } ?: throw IllegalArgumentException("No adapter to pin selection tracker to!")
+        } ?: throw IllegalArgumentException("No recycler to pin selection tracker to!")
+        tracker?.addObserver(MainTrackerObserver { refreshNonRecyclerItems() })
+            ?: throw IllegalArgumentException("No tracker provided!")
         /**
-        This observer is extra one, on top of base tracker oberver.
-        Base tracker observer is calling onBindViewHolder for
-        a) single item selection (selectionTracker.select(elementKey)) on clickListener
-        b) multiple selection through "tracker.setItemsSelected" for each item selection state change
-
-        So DO NOT put any adapter.notifyDataSetChange in this extra observer.
-        Do selection state change displaying ONLY in onBind method
+         * call it after we add observer, so restored Instance on fragment gonna represent restored selection
          */
-        tracker.addObserver(object : SelectionTracker.SelectionObserver<String>() {
-            override fun onSelectionChanged() {
-                super.onSelectionChanged()
-                parent.findViewById<Button>(R.id.btn_select_deselect).also { button ->
-                    if (listAdapter.list.size == tracker.selection.size()) {
-                        button.text = "Deselect all"
-                    } else {
-                        button.text = "Select all"
-                    }
-                }
-
-                val selectionSet = tracker.selection.toSet()
-                val recyclerGeoSet = listAdapter.list.filter { it.containsGeoData }.map {
-                    it.text
-                }.toSet()
-                parent.findViewById<Button>(R.id.btn_select_geo).also { button ->
-                    button.isEnabled = selectionSet != recyclerGeoSet
-                }
-                parent.findViewById<Button>(R.id.btn_send).isEnabled = selectionSet.isNotEmpty()
-            }
-        })
         if (savedInstanceState != null) {
-            tracker.onRestoreInstanceState(savedInstanceState)
+            tracker?.onRestoreInstanceState(savedInstanceState)
         }
     }
 
-    private fun setupButtons() {
-        parent.findViewById<Button>(R.id.btn_send).also { button ->
-            val selectedList = tracker.selection
-            button.isEnabled = !selectedList.isEmpty
+    private fun refreshNonRecyclerItems() {
+        val selectionSet = tracker?.selection?.toSet() ?: setOf()
+        val recyclerGeoSet = listAdapter?.list?.filter { it.containsGeoData }?.map {
+            it.id
+        }?.toSet() ?: setOf()
 
-            button.setOnClickListener {
-                selectedList.forEach {
-                    Log.d("dragu", "item selected: $it")
-                }
-                Toast.makeText(
-                    context,
-                    "${selectedList.size()} elements send",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+        btnSelectDeselect?.apply {
+            text = if (listAdapter?.itemCount == selectionSet.size) getString(R.string.deselect_all)
+            else getString(R.string.select_all)
         }
+        btnSelectGeo?.isEnabled = selectionSet != recyclerGeoSet
+        btnSend?.isEnabled = selectionSet.isNotEmpty()
+    }
 
-        parent.findViewById<Button>(R.id.btn_select_deselect).also { button ->
-            button.setOnClickListener {
-                val itemKeys: List<String> = listAdapter.list.map { it.text }
-                tracker.setItemsSelected(
-                    itemKeys,
-                    tracker.selection.size() ?: 0 != itemKeys.size
-                )
-            }
+    private fun setupClickListeners() {
+        btnSend?.setOnClickListener {
+            Toast.makeText(
+                context,
+                "${tracker?.selection?.size()} elements send",
+                Toast.LENGTH_SHORT
+            ).show()
         }
-
-        parent.findViewById<Button>(R.id.btn_select_geo).setOnClickListener {
-            tracker.clearSelection()
-            tracker.setItemsSelected(
-                listAdapter.list
-                    .filter { it.containsGeoData }
-                    .map { it.text },
+        btnSelectDeselect?.setOnClickListener {
+            val itemKeys: List<String> = listAdapter?.list?.map { it.id } ?: listOf()
+            tracker?.setItemsSelected(
+                itemKeys,
+                tracker?.selection?.size() != itemKeys.size
+            )
+        }
+        btnSelectGeo?.setOnClickListener {
+            tracker?.clearSelection()
+            tracker?.setItemsSelected(
+                listAdapter?.list
+                    ?.filter { it.containsGeoData }
+                    ?.map { it.id } ?: listOf(),
                 true
             )
         }

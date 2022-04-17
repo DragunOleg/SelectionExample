@@ -20,6 +20,7 @@ class MainViewModel : ViewModel() {
                 delay(500 * i.toLong())
                 _elementLiveData.imutPlus(
                     ElementModel(
+                        id = i.toString(),
                         text = "element $i",
                         containsGeoData = Random.nextBoolean()
                     )

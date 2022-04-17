@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">SelectionExample</string>
+    <string name="select_all">Select all</string>
+    <string name="deselect_all">Deselect all</string>
+    <string name="select_geo">Select geo</string>
+    <string name="send">Send</string>
 </resources>
